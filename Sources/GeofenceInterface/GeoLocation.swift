@@ -8,6 +8,7 @@
 import Foundation
 
 public struct GeoLocation {
+    public let id = String(UUID().uuidString.prefix(8))
     public let name: String
     public let latitude: Double
     public let longitude: Double

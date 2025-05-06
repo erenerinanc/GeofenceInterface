@@ -47,33 +47,38 @@ public final class GeoManager: NSObject {
             let region = CLCircularRegion(
                 center: coordinate,
                 radius: 200,
-                identifier: location.name
+                identifier: location.id
             )
             
             region.notifyOnEntry = true
             region.notifyOnExit = true
             locationManager.startMonitoring(for: region)
+            checkIfAlreadyInsideRegion(selectedRegion: region)
+        }
+    }
+    
+    private func checkIfAlreadyInsideRegion(selectedRegion: CLCircularRegion) {
+        if CLLocationManager.isMonitoringAvailable(for: CLCircularRegion.self),
+           CLLocationManager.authorizationStatus() == .authorizedAlways {
             
-            if CLLocationManager.isMonitoringAvailable(for: CLCircularRegion.self),
-               CLLocationManager.authorizationStatus() == .authorizedAlways {
-                
-                for region in locationManager.monitoredRegions {
-                    if let circular = region as? CLCircularRegion,
-                       circular.contains(locationManager.location?.coordinate ?? CLLocationCoordinate2D()) {
-                        print("Already inside region: \(circular.identifier)")
-                    }
+            for region in locationManager.monitoredRegions {
+                if let circular = region as? CLCircularRegion,
+                   circular.contains(locationManager.location?.coordinate ?? CLLocationCoordinate2D()) {
+                    let regionName = monitoredLocations.first { $0.id == circular.identifier }?.name ?? "Unknown"
+                    print("Already inside region: \(regionName)")
                 }
             }
         }
     }
 
     
-    private func handleEvent(for regionId: String, event: String) {
+    private func handleEvent(for id: String, event: String) {
         let content = UNMutableNotificationContent()
-        content.title = "\(event): \(regionId)"
-        content.body = "You \(event.lowercased()) \(regionId)"
+        let regionName = monitoredLocations.first { $0.id == id }?.name ?? "Unknown"
+        content.title = "\(event): \(regionName)"
+        content.body = "You \(event.lowercased()) \(regionName)"
         content.sound = .default
-        content.userInfo = ["locationName": regionId]
+        content.userInfo = ["regionId": id]
         
         let request = UNNotificationRequest(identifier: UUID().uuidString,
                                             content: content,
