@@ -12,7 +12,7 @@ It allows developers to define specific geographic areas and receive notificatio
 Add the following to your `Package.swift` dependencies:
 
 ```swift
-.package(url: "https://github.com/yourusername/GeofenceInterface.git", from: "1.0.0")
+.package(url: "https://github.com/erenerinanc/GeofenceInterface.git", from: "1.0.0")
 ```
 
 Then add "GeofenceInterface" to your target dependencies:
