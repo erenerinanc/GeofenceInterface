@@ -36,6 +36,24 @@ public final class GeoManager: NSObject {
         self.monitoredLocations = locations
         configureRegions()
     }
+    
+    /// Stops monitoring all active geofence regions and clears delivered notifications.
+    ///
+    /// This method disables all currently monitored regions and removes
+    /// any notifications previously delivered by the system.
+    ///
+    /// You may call this when geofencing is no longer needed — for example,
+    /// after the user taps on a geofence notification.
+    ///
+    /// ```swift
+    /// GeoManager.shared.stopMonitoring()
+    /// ```
+    public func stopMonitoring() {
+        for region in locationManager.monitoredRegions {
+            locationManager.stopMonitoring(for: region)
+        }
+        UNUserNotificationCenter.current().removeAllDeliveredNotifications()
+    }
 
     private func configureRegions() {
         for location in monitoredLocations {
@@ -53,20 +71,17 @@ public final class GeoManager: NSObject {
             region.notifyOnEntry = true
             region.notifyOnExit = true
             locationManager.startMonitoring(for: region)
-            checkIfAlreadyInsideRegion(selectedRegion: region)
         }
+        locationManager.requestLocation()
     }
     
-    private func checkIfAlreadyInsideRegion(selectedRegion: CLCircularRegion) {
-        if CLLocationManager.isMonitoringAvailable(for: CLCircularRegion.self),
-           CLLocationManager.authorizationStatus() == .authorizedAlways {
-            
-            for region in locationManager.monitoredRegions {
-                if let circular = region as? CLCircularRegion,
-                   circular.contains(locationManager.location?.coordinate ?? CLLocationCoordinate2D()) {
-                    let regionName = monitoredLocations.first { $0.id == circular.identifier }?.name ?? "Unknown"
-                    print("Already inside region: \(regionName)")
-                }
+    private func checkIfAlreadyInsideRegion(currentCoordinate: CLLocationCoordinate2D) {
+        
+        for region in locationManager.monitoredRegions {
+            if let circular = region as? CLCircularRegion,
+               circular.contains(currentCoordinate) {
+                let regionName = monitoredLocations.first { $0.id == circular.identifier }?.name ?? "Unknown"
+                print("📍 Already inside region: \(regionName)")
             }
         }
     }
@@ -115,6 +130,11 @@ extension GeoManager: CLLocationManagerDelegate {
     nonisolated public func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         if let location = locations.first {
             print("Current location: \(location.coordinate)")
+            if let currentCoordinate = locations.first?.coordinate {
+                Task { @MainActor in
+                    checkIfAlreadyInsideRegion(currentCoordinate: currentCoordinate)
+                }
+            }
         }
     }
 
