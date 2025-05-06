@@ -72,17 +72,23 @@ public final class GeoManager: NSObject {
     }
 
     
-    private func handleEvent(for id: String, event: String) {
+    private func handleEvent(for id: String, event: GeoLocation.Event) {
         let content = UNMutableNotificationContent()
-        let regionName = monitoredLocations.first { $0.id == id }?.name ?? "Unknown"
-        content.title = "\(event): \(regionName)"
-        content.body = "You \(event.lowercased()) \(regionName)"
+        let eventName = event.rawValue.uppercased()
+        let regionName = monitoredLocations.first { $0.id == id }?.name ?? ""
+        content.title = "\(eventName): \(regionName)"
+        content.body = "You \(eventName) \(regionName)"
         content.sound = .default
-        content.userInfo = ["regionId": id]
+        content.userInfo = [
+            "regionId": id,
+            "isEntered": event == .enter
+        ]
         
-        let request = UNNotificationRequest(identifier: UUID().uuidString,
-                                            content: content,
-                                            trigger: nil)
+        let request = UNNotificationRequest(
+            identifier: UUID().uuidString,
+            content: content,
+            trigger: nil
+        )
         
         UNUserNotificationCenter.current().add(request, withCompletionHandler: nil)
     }
@@ -95,14 +101,14 @@ extension GeoManager: CLLocationManagerDelegate {
     nonisolated public func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
         let identifier = region.identifier
         Task { @MainActor in
-            handleEvent(for: identifier, event: "Enter")
+            handleEvent(for: identifier, event: .enter)
         }
     }
     
     nonisolated public func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) {
         let identifier = region.identifier
         Task { @MainActor in
-            handleEvent(for: identifier, event: "Exit")
+            handleEvent(for: identifier, event: .exit)
         }
     }
     
